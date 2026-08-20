@@ -86,15 +86,12 @@
         z-index: 0;
         background-color: var(--fond);
         /*
-         * ⚠️ **Trois noms, et c'est volontaire.** Un fond CSS qui pointe un
-         * fichier absent ne casse rien de visible : la page devient simplement
-         * NOIRE, sans erreur, sans image manquante, et on cherche ailleurs.
-         * C'est arrivé deux fois en dix minutes en changeant `.jpg` pour
-         * `.jpeg` puis `.png`. Les couches se superposent, donc la première qui
-         * charge gagne et les autres ne coûtent qu'une requête vide.
+         * ⚠️ Le nom du fichier compte : un fond CSS qui pointe un fichier absent
+         * ne casse rien de visible, la page devient simplement NOIRE, sans
+         * erreur et sans image manquante, et on cherche ailleurs pendant dix
+         * minutes. Si la photo change, ce chemin change avec elle.
          */
-        background-image: url("portrait.png"), url("portrait.jpeg"),
-          url("portrait.jpg");
+        background-image: url("portrait.png");
 
         /*
          * ⚠️ **Le calage horizontal compte AUSSI sur téléphone, et pour la

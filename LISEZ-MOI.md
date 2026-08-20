@@ -7,10 +7,10 @@ sur n'importe quel hébergeur statique.
 ## Ce qu'il manque, et rien d'autre
 
 1. ~~La photo~~ ✅ posée le 20/08, en `portrait.png`.
-   Le fichier peut s'appeler `portrait.png`, `.jpeg` ou `.jpg` indifféremment :
-   les trois sont déclarés, la première qui existe gagne. C'est délibéré, parce
-   qu'un fond CSS qui pointe un fichier absent ne casse rien de visible, il rend
-   simplement la page NOIRE, sans erreur.
+   ⚠️ Si tu la remplaces, garde exactement ce nom, ou change le chemin dans le
+   `.decor` du `<style>`. Un fond CSS qui pointe un fichier absent ne casse rien
+   de visible : il rend simplement la page NOIRE, sans erreur et sans image
+   manquante, et on cherche ailleurs.
 
 2. **La ville**, tout en bas de `index.html`, écrite « Ville à remplir ».
    Je ne l'ai pas devinée exprès.
