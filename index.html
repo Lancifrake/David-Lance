@@ -443,7 +443,10 @@
         margin-top: clamp(2rem, 5svh, 3rem);
         font-family: "Space Grotesk", Manrope, sans-serif;
         font-size: 0.6875rem;
-        letter-spacing: 0.28em;
+        /* ⚠️ 0,28 em était réglé pour un NOM DE VILLE. Sur un code de trois
+           lettres, cette chasse fait lire « C M R », trois lettres dictées une
+           à une, au lieu d'un seul mot. */
+        letter-spacing: 0.18em;
         text-transform: uppercase;
         color: var(--encre-douce);
       }
@@ -556,7 +559,6 @@
           </a>
         </section>
 
-        <!-- ⚠️ À REMPLIR. -->
         <p class="lieu">
           <svg viewBox="0 0 24 24" aria-hidden="true">
             <path

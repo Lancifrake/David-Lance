@@ -12,11 +12,9 @@ sur n'importe quel hébergeur statique.
    de visible : il rend simplement la page NOIRE, sans erreur et sans image
    manquante, et on cherche ailleurs.
 
-2. **La ville**, tout en bas de `index.html`, écrite « Ville à remplir ».
-   Je ne l'ai pas devinée exprès.
+2. ~~La ville~~ ✅ `CMR` (Cameroun), posée le 20/08.
 
-3. **Le nom**, si « David Lance » n'est pas exactement ce que tu veux afficher.
-   Je l'ai pris du nom de ce dossier.
+3. ~~Le nom~~ ✅ « David Lance » confirmé le 20/08.
 
 ## Les deux réglages qui changent tout
 
