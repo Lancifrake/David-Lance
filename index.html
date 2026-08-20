@@ -1,0 +1,574 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Hi — David Lance</title>
+    <meta
+      name="description"
+      content="I trade, and I build my own software. One of them is already running."
+    />
+
+    <!-- Le partage social : sans ces balises, un lien collé rend une carte vide. -->
+    <meta property="og:title" content="David Lance" />
+    <meta
+      property="og:description"
+      content="I'm not an agency. I trade, and I build my own software. One of them is already running."
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="portrait.png" />
+    <meta name="twitter:card" content="summary_large_image" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;1,700&family=Manrope:wght@400;600;700&family=Space+Grotesk:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+
+    <style>
+      /* =====================================================================
+       * David Lance — la page « hi ».
+       *
+       * Une seule page, un seul fichier, aucune dépendance à installer : elle
+       * se dépose telle quelle sur n'importe quel hébergeur statique. Le seul
+       * actif externe est le portrait, à côté, en `portrait.jpeg`.
+       *
+       * ===================================================================== */
+
+      :root {
+        --encre: #f5f5f7;
+        --encre-douce: rgba(245, 245, 247, 0.62);
+        --fond: #0d0c0b;
+
+        /* ⚠️ L'accent est UNE variable, et c'est voulu : il doit se régler
+           contre le portrait une fois la photo posée. L'ambre tient sur la
+           plupart des fonds sombres et ne concurrence pas une carnation. */
+        --accent: #f0b429;
+        --accent-encre: #1a1205;
+
+        --colonne: 27rem;
+      }
+
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+
+      html {
+        -webkit-text-size-adjust: 100%;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100svh;
+        background: var(--fond);
+        color: var(--encre);
+        font-family: Manrope, system-ui, sans-serif;
+        font-size: 16px;
+        line-height: 1.5;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      /* ---------------------------------------------------------------------
+       * Le décor : le portrait, son voile, et le grain.
+       *
+       * ⚠️ Le voile n'est pas cosmétique. Une photo non voilée fait passer le
+       * texte blanc de lisible à illisible selon la zone de l'image, et ça ne
+       * se voit qu'une fois la vraie photo posée. Il est donc là dès le début.
+       *
+       * ⚠️ `fixed` sur l'image : elle ne défile pas, la colonne glisse dessus.
+       * ------------------------------------------------------------------- */
+      .decor {
+        position: fixed;
+        inset: 0;
+        z-index: 0;
+        background-color: var(--fond);
+        /*
+         * ⚠️ **Trois noms, et c'est volontaire.** Un fond CSS qui pointe un
+         * fichier absent ne casse rien de visible : la page devient simplement
+         * NOIRE, sans erreur, sans image manquante, et on cherche ailleurs.
+         * C'est arrivé deux fois en dix minutes en changeant `.jpg` pour
+         * `.jpeg` puis `.png`. Les couches se superposent, donc la première qui
+         * charge gagne et les autres ne coûtent qu'une requête vide.
+         */
+        background-image: url("portrait.png"), url("portrait.jpeg"),
+          url("portrait.jpg");
+
+        /*
+         * ⚠️ **Le calage horizontal compte AUSSI sur téléphone, et pour la
+         * raison inverse du grand écran.** Une photo paysage posée en `cover`
+         * sur un écran vertical déborde énormément à l'horizontale : centrée,
+         * elle montre le fond vide à côté du visage. 85 % ramène le visage dans
+         * le cadre.
+         */
+        background-size: cover;
+        background-position: 85% 24%;
+      }
+
+      /*
+       * Le cadrage large : le visage est poussé à droite de la colonne.
+       *
+       * ⚠️ **`background-position` ne décale une image que s'il y a un
+       * débordement à décaler.** Avec la photo VERTICALE du premier essai
+       * (3024x4032), `cover` remplissait exactement la largeur d'un écran 16:10 :
+       * aucun débordement horizontal, donc le visage restait planté au milieu
+       * sous le texte et changer le pourcentage ne faisait rien. Il avait fallu
+       * agrandir au delà de `cover`. La photo actuelle est en PAYSAGE, donc le
+       * débordement existe et un simple pourcentage suffit.
+       *
+       * 🔑 Si la photo repasse un jour en format vertical, ce réglage
+       * redeviendra sans effet : il faudra alors `background-size: 135% auto`
+       * et un calage à gauche.
+       */
+      @media (min-width: 60rem) {
+        .decor {
+          background-position: 62% 38%;
+        }
+      }
+
+      /* Deux voiles superposés : un global qui baisse toute l'image, un
+         latéral qui creuse la colonne de gauche là où le texte se pose. */
+      .decor::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        /*
+         * ⚠️ **Sur téléphone le voile est VERTICAL**, parce que le texte y prend
+         * toute la largeur : un voile diagonal réglé pour une colonne de gauche
+         * couvre alors l'écran entier et efface la photo. Il s'éclaircit donc
+         * en haut, là où le visage se trouve, et se referme sous le texte.
+         */
+        background: linear-gradient(
+          180deg,
+          rgba(6, 6, 8, 0.40) 0%,
+          rgba(6, 6, 8, 0.80) 34%,
+          rgba(6, 6, 8, 0.94) 62%,
+          rgba(6, 6, 8, 0.96) 100%
+        );
+      }
+
+      @media (min-width: 60rem) {
+        /*
+         * ⚠️ Les valeurs sont réglées CONTRE la photo, pas dans le vide. Mon
+         * premier voile (0,78 à 38 %) laissait les petites notes grises poser
+         * sur une joue éclairée : lisible en s'appliquant, illisible en
+         * diagonale, ce qui est la seule façon dont une page se lit. La colonne
+         * va de 34 à 64 % de la largeur, d'où le palier tenu jusqu'à 46 %.
+         */
+        .decor::after {
+          background:
+            linear-gradient(
+              100deg,
+              rgba(6, 6, 8, 0.97) 0%,
+              rgba(6, 6, 8, 0.93) 46%,
+              rgba(6, 6, 8, 0.62) 72%,
+              rgba(6, 6, 8, 0.34) 100%
+            ),
+            linear-gradient(
+              180deg,
+              rgba(6, 6, 8, 0.55) 0%,
+              transparent 18%,
+              rgba(6, 6, 8, 0.72) 100%
+            );
+        }
+      }
+
+      /* Le grain, en SVG inline pour ne rien télécharger. Il casse les bandes
+         de dégradé, qui sont très visibles sur un aplat sombre. */
+      .grain {
+        position: fixed;
+        inset: 0;
+        z-index: 1;
+        pointer-events: none;
+        opacity: 0.22;
+        mix-blend-mode: overlay;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");
+      }
+
+      /* ---------------------------------------------------------------------
+       * La colonne.
+       * ------------------------------------------------------------------- */
+      .page {
+        position: relative;
+        z-index: 2;
+        min-height: 100svh;
+        padding: clamp(2.5rem, 7svh, 5rem) 1.5rem clamp(2rem, 5svh, 3.5rem);
+        display: flex;
+        justify-content: center;
+      }
+
+      .colonne {
+        width: 100%;
+        max-width: var(--colonne);
+      }
+
+      /* Sur large écran, la colonne se décale vers la gauche du centre : c'est
+         ce qui laisse le visage respirer à droite au lieu d'être barré. */
+      @media (min-width: 60rem) {
+        .page {
+          justify-content: flex-start;
+          padding-left: clamp(3rem, 34vw, 32rem);
+        }
+      }
+
+      /* ---------------------------------------------------------------------
+       * Les intertitres à filet.
+       * ------------------------------------------------------------------- */
+      .accroche {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        margin: 0 0 1.5rem;
+        font-family: "Space Grotesk", Manrope, sans-serif;
+        font-size: 0.6875rem;
+        font-weight: 500;
+        letter-spacing: 0.22em;
+        text-transform: uppercase;
+        color: var(--encre-douce);
+      }
+
+      .accroche::after {
+        content: "";
+        flex: 1;
+        height: 1px;
+        background: rgba(245, 245, 247, 0.22);
+      }
+
+      /* ---------------------------------------------------------------------
+       * L'identité.
+       * ------------------------------------------------------------------- */
+      .nom {
+        margin: 0;
+        font-family: "Playfair Display", Georgia, serif;
+        font-weight: 700;
+        font-size: clamp(2rem, 5vw, 2.75rem);
+        line-height: 1.05;
+        letter-spacing: -0.01em;
+      }
+
+      .metier {
+        margin: 0.35rem 0 0;
+        font-size: 0.875rem;
+        color: var(--encre-douce);
+      }
+
+      /* ---------------------------------------------------------------------
+       * Les grandes lignes.
+       *
+       * ⚠️ C'est le seul endroit où la page hausse la voix, donc tout le reste
+       * doit rester petit. Un deuxième niveau de gros texte et l'effet tombe.
+       * ------------------------------------------------------------------- */
+      .ligne {
+        margin: clamp(1.75rem, 4svh, 2.75rem) 0 0;
+        font-family: "Playfair Display", Georgia, serif;
+        font-weight: 700;
+        font-size: clamp(1.75rem, 4.4vw, 2.5rem);
+        line-height: 1.12;
+        letter-spacing: -0.015em;
+        text-wrap: balance;
+      }
+
+      .ligne--intro {
+        margin-top: clamp(2rem, 5svh, 3.25rem);
+      }
+
+      /* Le mot barré. ⚠️ `text-decoration` seul rend un trait fin et gris qui
+         passe pour une faute d'affichage ; le trait est donc dessiné, à
+         l'accent, et assez épais pour se lire comme un geste volontaire. */
+      .barre {
+        position: relative;
+        white-space: nowrap;
+      }
+
+      .barre::after {
+        content: "";
+        position: absolute;
+        left: -0.04em;
+        right: -0.04em;
+        /* ⚠️ MESURÉ, pas estimé. Dans la boîte d'un `<span>` en ligne, la
+           ligne de base tombe à 1,075 em du haut et la hauteur d'x vaut
+           0,517 em : le milieu visuel des minuscules est donc à 0,816 em, et
+           le trait descend d'une demi épaisseur pour se centrer dessus. Mon
+           premier essai à 0,56 em barrait le haut des lettres, ce qui se lit
+           comme un défaut d'affichage et pas comme une rature. */
+        top: 0.78em;
+        height: 0.075em;
+        background: var(--accent);
+        border-radius: 999px;
+      }
+
+      /* La chute en italique, pour les questions posées au lecteur. */
+      .italique {
+        font-style: italic;
+        color: rgba(245, 245, 247, 0.82);
+      }
+
+      /* ---------------------------------------------------------------------
+       * Les liens des grandes lignes : soulignés à l'accent, avec la flèche.
+       * ------------------------------------------------------------------- */
+      .lien {
+        color: inherit;
+        text-decoration: none;
+        background-image: linear-gradient(var(--accent), var(--accent));
+        background-repeat: no-repeat;
+        background-position: 0 92%;
+        background-size: 100% 0.07em;
+        transition: background-size 0.22s ease, color 0.22s ease;
+      }
+
+      .lien:hover,
+      .lien:focus-visible {
+        color: var(--accent);
+        background-size: 100% 0.24em;
+      }
+
+      .lien::after {
+        content: "\2197";
+        font-family: Manrope, sans-serif;
+        font-size: 0.5em;
+        vertical-align: 0.55em;
+        margin-left: 0.08em;
+      }
+
+      /* ---------------------------------------------------------------------
+       * La note sous chaque grande ligne : une étiquette grasse, puis la suite
+       * en gris. C'est ce qui empêche la page d'être une suite de slogans.
+       * ------------------------------------------------------------------- */
+      .note {
+        margin: 0.85rem 0 0;
+        font-size: 0.875rem;
+        line-height: 1.55;
+        color: var(--encre-douce);
+        max-width: 24rem;
+      }
+
+      .note b {
+        color: var(--encre);
+        font-weight: 700;
+      }
+
+      /* ---------------------------------------------------------------------
+       * Où me joindre.
+       * ------------------------------------------------------------------- */
+      .joindre {
+        margin-top: clamp(2.5rem, 6svh, 4rem);
+      }
+
+      .reseaux {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr));
+        gap: 0.625rem;
+      }
+
+      .carte {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.75rem 0.875rem;
+        border: 1px solid rgba(245, 245, 247, 0.16);
+        border-radius: 0.5rem;
+        background: rgba(12, 12, 14, 0.42);
+        backdrop-filter: blur(6px);
+        color: inherit;
+        text-decoration: none;
+        transition: border-color 0.2s ease, background-color 0.2s ease;
+      }
+
+      .carte:hover,
+      .carte:focus-visible {
+        border-color: rgba(245, 245, 247, 0.38);
+        background: rgba(12, 12, 14, 0.66);
+      }
+
+      .carte svg {
+        flex: none;
+        width: 1.125rem;
+        height: 1.125rem;
+        fill: currentColor;
+      }
+
+      .carte-nom {
+        display: block;
+        font-size: 0.8125rem;
+        font-weight: 600;
+      }
+
+      .carte-note {
+        display: block;
+        font-size: 0.6875rem;
+        color: var(--encre-douce);
+      }
+
+      /* Le pavé d'écriture, seul aplat de couleur de la page. */
+      .ecrire {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 1rem;
+        flex-wrap: wrap;
+        margin-top: 0.625rem;
+        padding: 1rem 1.125rem;
+        border-radius: 0.5rem;
+        background: var(--accent);
+        color: var(--accent-encre);
+        text-decoration: none;
+        transition: filter 0.2s ease;
+      }
+
+      .ecrire:hover,
+      .ecrire:focus-visible {
+        filter: brightness(1.08);
+      }
+
+      .ecrire-titre {
+        font-family: "Playfair Display", Georgia, serif;
+        font-weight: 700;
+        font-size: 1.375rem;
+        line-height: 1;
+      }
+
+      .ecrire-adresse {
+        font-size: 0.8125rem;
+        font-weight: 600;
+        word-break: break-all;
+      }
+
+      /* ---------------------------------------------------------------------
+       * Le pied.
+       * ------------------------------------------------------------------- */
+      .lieu {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.625rem;
+        margin-top: clamp(2rem, 5svh, 3rem);
+        font-family: "Space Grotesk", Manrope, sans-serif;
+        font-size: 0.6875rem;
+        letter-spacing: 0.28em;
+        text-transform: uppercase;
+        color: var(--encre-douce);
+      }
+
+      .lieu svg {
+        width: 0.8125rem;
+        height: 0.8125rem;
+        fill: var(--accent);
+      }
+
+      /* ⚠️ Rien n'anime au défilement ici, donc rien à désactiver. Les seules
+         transitions sont des survols, et un survol n'existe pas pour qui a
+         demandé moins de mouvement. */
+      @media (prefers-reduced-motion: reduce) {
+        * {
+          transition: none !important;
+        }
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="decor" aria-hidden="true"></div>
+    <div class="grain" aria-hidden="true"></div>
+
+    <main class="page">
+      <div class="colonne">
+        <p class="accroche">Right now</p>
+
+        <h1 class="nom">David Lance</h1>
+        <p class="metier">Trader. I build my own software.</p>
+
+        <p class="ligne ligne--intro">
+          I'm not an <span class="barre">agency</span>.
+        </p>
+
+        <p class="ligne">I trade, and I build.</p>
+
+        <p class="note">
+          <b>The second one comes out of the first.</b> I'm not writing software
+          for an industry I read about from the outside. I'm in this one every
+          day, and that's where the products come from.
+        </p>
+
+        <p class="ligne">
+          One of them is already
+          <a class="lien" href="https://budoka.vercel.app" target="_blank" rel="noreferrer">running</a>.
+        </p>
+
+        <p class="note">
+          <b>Budoka.</b> A Discord agent that answers a trading coach's students
+          in his own method, taken from his own videos. It escalates to him when
+          a question needs a human, and it stays quiet rather than guess. Go
+          look, it's live.
+        </p>
+
+        <p class="ligne">I take on one outside project at a time.</p>
+
+        <p class="note">
+          <b>Rarely, and on purpose.</b> I'd rather ship one thing properly than
+          four against someone else's deadline. When I take one, you deal with me
+          from the first sentence to production, and the day it breaks in front
+          of your users it's still me.
+        </p>
+
+        <p class="ligne">
+          <span class="italique">AI, web3, or a plain web app?</span> The stack
+          follows the problem.
+        </p>
+
+        <p class="note">
+          <b>I don't sell a technology.</b> Most projects need less machinery
+          than they think, and the useful work is deciding what to leave out.
+        </p>
+
+        <p class="ligne">I know what a product has to refuse.</p>
+
+        <p class="note">
+          <b>Software that never says no is a liability.</b> The agent above
+          never promises a return, never speaks over an open position, and hands
+          anything outside its material back to the human. That boundary wasn't
+          a guess.
+        </p>
+
+        <section class="joindre">
+          <p class="accroche">Find me</p>
+
+          <div class="reseaux">
+            <a
+              class="carte"
+              href="https://instagram.com/smcdavid_fx"
+              target="_blank"
+              rel="noreferrer"
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path
+                  d="M12 2.16c3.2 0 3.58.01 4.85.07 1.17.05 1.8.25 2.23.41.56.22.96.48 1.38.9.42.42.68.82.9 1.38.16.42.36 1.06.41 2.23.06 1.27.07 1.65.07 4.85s-.01 3.58-.07 4.85c-.05 1.17-.25 1.8-.41 2.23-.22.56-.48.96-.9 1.38-.42.42-.82.68-1.38.9-.42.16-1.06.36-2.23.41-1.27.06-1.65.07-4.85.07s-3.58-.01-4.85-.07c-1.17-.05-1.8-.25-2.23-.41-.56-.22-.96-.48-1.38-.9-.42-.42-.68-.82-.9-1.38-.16-.42-.36-1.06-.41-2.23-.06-1.27-.07-1.65-.07-4.85s.01-3.58.07-4.85c.05-1.17.25-1.8.41-2.23.22-.56.48-.96.9-1.38.42-.42.82-.68 1.38-.9.42-.16 1.06-.36 2.23-.41 1.27-.06 1.65-.07 4.85-.07M12 0C8.74 0 8.33.01 7.05.07 5.78.13 4.9.33 4.14.63c-.79.3-1.46.72-2.12 1.39C1.35 2.68.93 3.35.63 4.14.33 4.9.13 5.78.07 7.05.01 8.33 0 8.74 0 12s.01 3.67.07 4.95c.06 1.27.26 2.15.56 2.91.3.79.72 1.46 1.39 2.12.66.67 1.33 1.09 2.12 1.39.76.3 1.64.5 2.91.56C8.33 23.99 8.74 24 12 24s3.67-.01 4.95-.07c1.27-.06 2.15-.26 2.91-.56.79-.3 1.46-.72 2.12-1.39.67-.66 1.09-1.33 1.39-2.12.3-.76.5-1.64.56-2.91.06-1.28.07-1.69.07-4.95s-.01-3.67-.07-4.95c-.06-1.27-.26-2.15-.56-2.91-.3-.79-.72-1.46-1.39-2.12C21.32 1.35 20.65.93 19.86.63c-.76-.3-1.64-.5-2.91-.56C15.67.01 15.26 0 12 0zm0 5.84a6.16 6.16 0 100 12.32 6.16 6.16 0 000-12.32zm0 10.16a4 4 0 110-8 4 4 0 010 8zm7.85-10.4a1.44 1.44 0 11-2.88 0 1.44 1.44 0 012.88 0z"
+                />
+              </svg>
+              <span>
+                <span class="carte-nom">Instagram</span>
+                <span class="carte-note">Charts, mostly</span>
+              </span>
+            </a>
+          </div>
+
+          <a class="ecrire" href="mailto:7smcdavid@gmail.com?subject=Building%20something">
+            <span class="ecrire-titre">Write to me</span>
+            <span class="ecrire-adresse">7smcdavid@gmail.com</span>
+          </a>
+        </section>
+
+        <!-- ⚠️ À REMPLIR. -->
+        <p class="lieu">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path
+              d="M12 21s-7-5.4-7-10.2A7 7 0 0112 4a7 7 0 017 6.8C19 15.6 12 21 12 21z"
+            />
+          </svg>
+          CMR
+        </p>
+      </div>
+    </main>
+  </body>
+</html>
