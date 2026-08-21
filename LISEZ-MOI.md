@@ -6,11 +6,12 @@ sur n'importe quel hébergeur statique.
 
 ## Ce qu'il manque, et rien d'autre
 
-1. ~~La photo~~ ✅ posée le 20/08, en `portrait.png`.
-   ⚠️ Si tu la remplaces, garde exactement ce nom, ou change le chemin dans le
-   `.decor` du `<style>`. Un fond CSS qui pointe un fichier absent ne casse rien
-   de visible : il rend simplement la page NOIRE, sans erreur et sans image
-   manquante, et on cherche ailleurs.
+1. ~~La photo~~ ✅ posée le 20/08, remplacée le 21/08 par la version dessinée
+   `davinci__image1__transform_the_attached_photo_into_a_styli.png`.
+   ⚠️ Si tu la remplaces, change le chemin dans le `.decor::before` du
+   `<style>`. Un fond CSS qui pointe un fichier absent ne casse rien de visible :
+   il rend simplement la page NOIRE, sans erreur et sans image manquante, et on
+   cherche ailleurs.
 
 2. ~~La ville~~ ✅ `CMR` (Cameroun), posée le 20/08.
 
@@ -23,11 +24,23 @@ sur n'importe quel hébergeur statique.
   fonds sombres. À régler CONTRE la photo une fois qu'elle est là, c'est le
   genre de couleur qui ne se juge pas dans le vide.
 
-- **Le cadrage de la photo** : `background-position`, et il y en a DEUX,
-  un pour le téléphone et un pour le grand écran. Ils ne se règlent pas
-  ensemble : sur grand écran il s'agit de pousser le visage à droite de la
-  colonne de texte, sur téléphone de le ramener au centre, parce qu'une photo
-  paysage posée sur un écran vertical déborde énormément sur les côtés.
+- **Le cadrage de la photo** : il y en a DEUX, et ce ne sont pas deux réglages
+  du même cadrage, ce sont deux mises en page.
+
+  Sur **grand écran** (et sur téléphone COUCHÉ), la photo prend tout le cadre en
+  `cover` et le `background-position` pousse le visage à droite de la colonne de
+  texte.
+
+  Sur **téléphone debout**, la photo est RÉDUITE à une bande haute : le visage
+  entier y tient, et le bas de l'image se fond dans le noir par un masque. En
+  `cover` sur un écran de 390 de large, une image de 1376x768 est agrandie près
+  de quatre fois, le visage remplit tout l'écran, crâne et menton coupés hors
+  cadre, et on ne reconnaît plus personne.
+
+  ⚠️ Deux pièges si tu touches à ce réglage. Une image qui ne couvre plus laisse
+  un BORD NET, c'est ce que le masque efface en bas ; et il ne fond que le bas,
+  donc un écran plus large que haut repasse en `cover`, sinon la photo devient un
+  petit rectangle flottant.
 
   ⚠️ Si tu changes la photo pour une VERTICALE, le réglage du grand écran
   redeviendra sans effet : `background-position` ne décale que s'il y a un

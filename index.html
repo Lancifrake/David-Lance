@@ -85,27 +85,63 @@
         inset: 0;
         z-index: 0;
         background-color: var(--fond);
-        /*
-         * ⚠️ Le nom du fichier compte : un fond CSS qui pointe un fichier absent
-         * ne casse rien de visible, la page devient simplement NOIRE, sans
-         * erreur et sans image manquante, et on cherche ailleurs pendant dix
-         * minutes. Si la photo change, ce chemin change avec elle.
-         */
-        background-image: url("davinci__image1__transform_the_attached_photo_into_a_styli.png");
-
-        /*
-         * ⚠️ **Le calage horizontal compte AUSSI sur téléphone, et pour la
-         * raison inverse du grand écran.** Une photo paysage posée en `cover`
-         * sur un écran vertical déborde énormément à l'horizontale : centrée,
-         * elle montre le fond vide à côté du visage. 85 % ramène le visage dans
-         * le cadre.
-         */
-        background-size: cover;
-        background-position: 85% 24%;
       }
 
       /*
-       * Le cadrage large : le visage est poussé à droite de la colonne.
+       * La photo vit dans un calque à elle, sous le voile.
+       *
+       * ⚠️ Le nom du fichier compte : un fond CSS qui pointe un fichier absent
+       * ne casse rien de visible, la page devient simplement NOIRE, sans
+       * erreur et sans image manquante, et on cherche ailleurs pendant dix
+       * minutes. Si la photo change, ce chemin change avec elle.
+       *
+       * ⚠️⚠️ **Sur téléphone la photo NE COUVRE PAS l'écran, et c'est voulu.**
+       * En `cover` sur un écran de 390 de large, une image 1376x768 est agrandie
+       * près de quatre fois : le visage remplit tout, crâne et menton coupés hors
+       * cadre, et on ne reconnaît plus personne. Elle est donc RÉDUITE à une
+       * bande haute où le visage entier tient, et le reste de l'écran est le
+       * fond, que le texte traverse.
+       */
+      .decor::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background-image: url("davinci__image1__transform_the_attached_photo_into_a_styli.png");
+        background-repeat: no-repeat;
+
+        /*
+         * ⚠️ **Le calage horizontal compte AUSSI sur téléphone, et pour la
+         * raison inverse du grand écran.** Une photo paysage posée sur un écran
+         * vertical déborde énormément à l'horizontale : centrée, elle montre le
+         * fond vide à côté du visage. 85 % ramène le visage dans le cadre.
+         */
+        background-size: auto 56svh;
+        background-position: 85% top;
+
+        /*
+         * ⚠️ **Une image qui ne couvre plus laisse un BORD NET en bas.** Sans ce
+         * masque on voit une ligne horizontale à l'endroit exact où la photo
+         * s'arrête, et ça se lit comme une image à moitié chargée. Le fondu part
+         * sous le menton et se termine sur le bord de l'image : c'est le buste
+         * qui disparaît dans le noir, pas le visage.
+         */
+        -webkit-mask-image: linear-gradient(
+          180deg,
+          #000 0,
+          #000 34svh,
+          transparent 56svh
+        );
+        mask-image: linear-gradient(
+          180deg,
+          #000 0,
+          #000 34svh,
+          transparent 56svh
+        );
+      }
+
+      /*
+       * Le cadrage large : la photo reprend tout l'écran, le visage est poussé à
+       * droite de la colonne.
        *
        * ⚠️ **`background-position` ne décale une image que s'il y a un
        * débordement à décaler.** Avec la photo VERTICALE du premier essai
@@ -115,16 +151,24 @@
        * agrandir au delà de `cover`. La photo actuelle est en PAYSAGE, donc le
        * débordement existe et un simple pourcentage suffit.
        *
+       * ⚠️⚠️ **La condition n'est pas que la largeur : un téléphone COUCHÉ y
+       * revient aussi.** Sur un écran large et bas, la bande réduite devient un
+       * petit rectangle flottant, bord droit net et fond noir autour : le masque
+       * ne fond que le bas. Dès que l'écran est plus large que haut, la photo
+       * reprend donc tout le cadre.
+       *
        * 🔑 Si la photo repasse un jour en format vertical, ce réglage
        * redeviendra sans effet : il faudra alors `background-size: 135% auto`
        * et un calage à gauche.
        */
-      @media (min-width: 60rem) {
-        .decor {
+      @media (min-width: 60rem), (min-aspect-ratio: 1 / 1) {
+        .decor::before {
+          background-size: cover;
           background-position: 62% 38%;
+          -webkit-mask-image: none;
+          mask-image: none;
         }
       }
-
       /* Deux voiles superposés : un global qui baisse toute l'image, un
          latéral qui creuse la colonne de gauche là où le texte se pose. */
       .decor::after {
