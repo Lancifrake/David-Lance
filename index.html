@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-langue="en">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -25,6 +25,64 @@
       href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;1,700&family=Manrope:wght@400;600;700&family=Space+Grotesk:wght@400;500&display=swap"
       rel="stylesheet"
     />
+
+    <!--
+      ⚠️ Ce script est dans le `<head>`, et il DOIT y rester. Il ne fait qu'une
+      chose, poser la langue sur la balise `<html>`, mais il la pose avant le
+      premier affichage : descendu en bas du fichier, la page s'afficherait une
+      fraction de seconde en anglais avant de basculer, et ce clignotement se
+      voit à chaque visite.
+    -->
+    <script>
+      (() => {
+        const LANGUES = ["en", "fr", "es"];
+
+        // Les langues qu'on ne parle PAS, mais qui se lisent depuis une des
+        // trois. Un Brésilien lit l'espagnol bien plus facilement que l'anglais,
+        // et le repli anglais l'ignorait.
+        // ⚠️ L'italien n'y est pas, volontairement : il est aussi près du
+        // français que de l'espagnol, le choix serait arbitraire, et deviner
+        // faux agace plus que l'anglais, qui ne se lit jamais comme une erreur.
+        const PROCHES = { pt: "es", gl: "es", ca: "es" };
+
+        let choix = null;
+        // ⚠️ `localStorage` LÈVE UNE ERREUR, il ne renvoie pas `null`, quand le
+        // navigateur refuse le stockage (Safari en navigation privée, réglages
+        // stricts). Sans ce `try`, le script meurt ici et la page reste en
+        // anglais pour tout le monde.
+        try {
+          choix = localStorage.getItem("langue");
+        } catch (e) {}
+
+        if (!LANGUES.includes(choix)) {
+          // `navigator.languages` est la liste ORDONNÉE des préférences, pas une
+          // seule langue.
+          const demandees = navigator.languages || [navigator.language || "en"];
+
+          // ⚠️ La proximité est testée langue par langue, DANS L'ORDRE, et pas
+          // à la fin en dernier recours. Chrome ajoute souvent l'anglais en
+          // secondaire : `["pt-BR", "pt", "en-US", "en"]`. Un repli cherché
+          // après coup trouverait cet anglais-là et servirait l'anglais à
+          // quelqu'un qui a demandé le portugais en premier.
+          for (const demandee of demandees) {
+            const l = String(demandee).slice(0, 2).toLowerCase();
+            if (LANGUES.includes(l)) {
+              choix = l;
+              break;
+            }
+            if (PROCHES[l]) {
+              choix = PROCHES[l];
+              break;
+            }
+          }
+
+          if (!LANGUES.includes(choix)) choix = "en";
+        }
+
+        document.documentElement.lang = choix;
+        document.documentElement.dataset.langue = choix;
+      })();
+    </script>
 
     <style>
       /* =====================================================================
@@ -278,6 +336,55 @@
       }
 
       /* ---------------------------------------------------------------------
+       * Les trois langues.
+       *
+       * Chaque phrase existe TROIS FOIS dans le fichier, en anglais, en
+       * français et en espagnol, et le CSS cache les deux qui ne servent pas.
+       * C'est plus verbeux qu'un dictionnaire en JavaScript, et c'est le choix :
+       * le texte reste du texte dans la page, il s'affiche même si le script ne
+       * part pas, et surtout il n'y a AUCUN clignotement — la bonne langue est
+       * choisie avant le premier affichage, par le script du `<head>`.
+       *
+       * ⚠️ Cette règle ne fait que CACHER. Une règle qui montrerait
+       * (`display: block`) écraserait le `flex` de `.accroche` et le `.lieu`, et
+       * casserait leur mise en page dans deux langues sur trois.
+       * ------------------------------------------------------------------- */
+      html[data-langue="en"] .trad:not([lang="en"]),
+      html[data-langue="fr"] .trad:not([lang="fr"]),
+      html[data-langue="es"] .trad:not([lang="es"]) {
+        display: none;
+      }
+
+      /* Le sélecteur, posé au bout du filet de la première accroche.
+         ⚠️ `order: 1` : le filet est un `::after`, il passe donc APRÈS les
+         enfants réels ; sans ça les trois sigles se collent au titre. */
+      .langues {
+        order: 1;
+        display: inline-flex;
+        gap: 0.375rem;
+      }
+
+      .langues button {
+        padding: 0.125rem 0.125rem;
+        border: 0;
+        background: none;
+        font: inherit;
+        letter-spacing: inherit;
+        color: var(--encre-douce);
+        cursor: pointer;
+        transition: color 0.2s ease;
+      }
+
+      .langues button:hover,
+      .langues button:focus-visible {
+        color: var(--encre);
+      }
+
+      .langues button[aria-pressed="true"] {
+        color: var(--accent);
+      }
+
+      /* ---------------------------------------------------------------------
        * L'identité.
        * ------------------------------------------------------------------- */
       .nom {
@@ -397,83 +504,167 @@
         margin-top: clamp(2.5rem, 6svh, 4rem);
       }
 
-      .reseaux {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr));
-        gap: 0.625rem;
+      /* ---------------------------------------------------------------------
+       * Les cartes de contact.
+       *
+       * Une rangée de pions, et UNE SEULE carte qui voyage de l'un à l'autre.
+       * Ce n'est pas un détail d'implémentation : une carte par pion, ce sont
+       * deux cartes qui se croisent en fondu au moment où l'on passe de l'une à
+       * l'autre, et le regard perd le fil. Une seule carte qui glisse, c'est un
+       * objet qu'on suit des yeux.
+       *
+       * ⚠️ La carte sort du cadre du bloc, vers le HAUT : elle passe par-dessus
+       * le paragraphe précédent. D'où le fond opaque et le `z-index` — une carte
+       * translucide posée sur du texte est illisible.
+       * ------------------------------------------------------------------- */
+      .social {
+        position: relative;
       }
 
-      .carte {
+      .social-liste {
         display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+      }
+
+      .social-pion {
+        display: inline-flex;
         align-items: center;
-        gap: 0.75rem;
-        padding: 0.75rem 0.875rem;
+        gap: 0.5rem;
+        padding: 0.625rem 0.875rem;
         border: 1px solid rgba(245, 245, 247, 0.16);
         border-radius: 0.5rem;
         background: rgba(12, 12, 14, 0.42);
         backdrop-filter: blur(6px);
         color: inherit;
+        font-size: 0.8125rem;
+        font-weight: 600;
         text-decoration: none;
-        transition: border-color 0.2s ease, background-color 0.2s ease;
+        transition: border-color 0.2s ease, background-color 0.2s ease,
+          transform 0.2s ease;
       }
 
-      .carte:hover,
-      .carte:focus-visible {
-        border-color: rgba(245, 245, 247, 0.38);
-        background: rgba(12, 12, 14, 0.66);
-      }
-
-      .carte svg {
+      .social-pion svg {
         flex: none;
-        width: 1.125rem;
-        height: 1.125rem;
+        width: 1.0625rem;
+        height: 1.0625rem;
         fill: currentColor;
       }
 
-      .carte-nom {
-        display: block;
-        font-size: 0.8125rem;
-        font-weight: 600;
+      .social-pion:hover,
+      .social-pion:focus-visible,
+      .social-pion[data-actif] {
+        border-color: rgba(245, 245, 247, 0.38);
+        background: rgba(12, 12, 14, 0.66);
+        transform: translateY(-1px);
       }
 
-      .carte-note {
-        display: block;
-        font-size: 0.6875rem;
-        color: var(--encre-douce);
-      }
-
-      /* Le pavé d'écriture, seul aplat de couleur de la page. */
-      .ecrire {
-        display: flex;
-        align-items: baseline;
-        justify-content: space-between;
-        gap: 1rem;
-        flex-wrap: wrap;
-        margin-top: 0.625rem;
-        padding: 1rem 1.125rem;
-        border-radius: 0.5rem;
+      /* ⚠️ Le pion mail garde l'aplat ambre, et c'est le seul de la page. Le
+         gros pavé « Write to me » a disparu dans la rangée : sans cette couleur,
+         la page ne demande plus rien, elle se contente de lister deux liens. */
+      .social-pion--accent,
+      .social-pion--accent:hover,
+      .social-pion--accent:focus-visible,
+      .social-pion--accent[data-actif] {
+        border-color: transparent;
         background: var(--accent);
         color: var(--accent-encre);
-        text-decoration: none;
-        transition: filter 0.2s ease;
       }
 
-      .ecrire:hover,
-      .ecrire:focus-visible {
+      .social-pion--accent:hover,
+      .social-pion--accent:focus-visible,
+      .social-pion--accent[data-actif] {
         filter: brightness(1.08);
       }
 
-      .ecrire-titre {
-        font-family: "Playfair Display", Georgia, serif;
-        font-weight: 700;
-        font-size: 1.375rem;
-        line-height: 1;
+      /* La carte partagée. Sa position et sa hauteur sont écrites par le script
+         en pixels : `height: auto` ne s'anime pas, et c'est justement le passage
+         d'une hauteur à l'autre qui donne le morphing. */
+      .social-carte {
+        position: absolute;
+        left: 0;
+        bottom: calc(100% + 0.625rem);
+        z-index: 4;
+        width: min(17rem, 100%);
+        height: 0;
+        overflow: hidden;
+        border: 1px solid rgba(245, 245, 247, 0.16);
+        border-radius: 0.625rem;
+        background: rgba(10, 10, 12, 0.94);
+        backdrop-filter: blur(10px);
+        box-shadow: 0 18px 40px rgba(0, 0, 0, 0.55);
+        opacity: 0;
+        pointer-events: none;
+        transition: transform 0.42s cubic-bezier(0.22, 1, 0.36, 1),
+          height 0.42s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.22s ease;
       }
 
-      .ecrire-adresse {
-        font-size: 0.8125rem;
-        font-weight: 600;
-        word-break: break-all;
+      .social-carte[data-ouverte] {
+        opacity: 1;
+      }
+
+      /* Les contenus sont EMPILÉS, tous en position absolue : c'est ce qui
+         permet à la carte de mesurer celui qui arrive pendant que l'autre est
+         encore là. */
+      .social-apercu {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        padding: 0.875rem 1rem;
+        opacity: 0;
+        transform: translateX(var(--decalage, 0));
+        filter: blur(5px);
+        transition: opacity 0.24s ease,
+          transform 0.32s cubic-bezier(0.22, 1, 0.36, 1), filter 0.24s ease;
+      }
+
+      .social-apercu[data-actif] {
+        opacity: 1;
+        transform: none;
+        filter: none;
+      }
+
+      .social-apercu-tete {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-family: "Space Grotesk", Manrope, sans-serif;
+        font-size: 0.625rem;
+        font-weight: 500;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: var(--encre-douce);
+      }
+
+      .social-apercu-tete svg {
+        width: 0.875rem;
+        height: 0.875rem;
+        fill: var(--accent);
+      }
+
+      .social-apercu-nom {
+        margin: 0.5rem 0 0;
+        font-size: 0.9375rem;
+        font-weight: 700;
+        word-break: break-word;
+      }
+
+      .social-apercu-note {
+        margin: 0.25rem 0 0;
+        font-size: 0.6875rem;
+        line-height: 1.45;
+        color: var(--encre-douce);
+      }
+
+      .social-apercu-suite {
+        display: block;
+        margin-top: 0.625rem;
+        font-family: "Space Grotesk", Manrope, sans-serif;
+        font-size: 0.625rem;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--accent);
       }
 
       /* ---------------------------------------------------------------------
@@ -501,9 +692,44 @@
         fill: var(--accent);
       }
 
-      /* ⚠️ Rien n'anime au défilement ici, donc rien à désactiver. Les seules
-         transitions sont des survols, et un survol n'existe pas pour qui a
-         demandé moins de mouvement. */
+      /* ---------------------------------------------------------------------
+       * La traînée de jetons.
+       *
+       * Le curseur sème BTC, ETH, SOL et ADA derrière lui. Aucun paquet à
+       * installer : les quatre logos sont dans un <template> en bas du fichier
+       * et le script tient en trente lignes.
+       *
+       * ⚠️ `pointer-events: none` sur le calque, sinon un jeton qui tombe sur
+       * « running » ou sur le bouton mail mange le clic, et le lien devient
+       * mort une fois sur deux sans qu'on comprenne pourquoi.
+       *
+       * ⚠️ `overflow: hidden` : un jeton posé au bord part à moitié hors cadre,
+       * et sans ça il ajoute une barre de défilement horizontale.
+       * ------------------------------------------------------------------- */
+      .trainee {
+        position: fixed;
+        inset: 0;
+        z-index: 3;
+        overflow: hidden;
+        pointer-events: none;
+      }
+
+      .trainee svg {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 3.25rem;
+        height: 3.25rem;
+        opacity: 0;
+        /* L'ombre décolle le logo de la photo : sans elle, un jeton sombre posé
+           sur une zone sombre se lit comme une tache. */
+        filter: drop-shadow(0 2px 10px rgba(0, 0, 0, 0.55));
+        will-change: transform, opacity;
+      }
+
+      /* ⚠️ La traînée est le seul mouvement de la page, et elle se coupe DANS LE
+         SCRIPT, pas ici : une animation lancée en JavaScript ne lit aucune règle
+         CSS. Ce bloc ne désactive donc que les survols. */
       @media (prefers-reduced-motion: reduce) {
         * {
           transition: none !important;
@@ -515,92 +741,266 @@
   <body>
     <div class="decor" aria-hidden="true"></div>
     <div class="grain" aria-hidden="true"></div>
+    <div class="trainee" aria-hidden="true"></div>
 
     <main class="page">
       <div class="colonne">
-        <p class="accroche">Right now</p>
+        <p class="accroche">
+          <span class="trad" lang="en">Right now</span>
+          <span class="trad" lang="fr">En ce moment</span>
+          <span class="trad" lang="es">Ahora mismo</span>
+
+          <span class="langues" role="group" aria-label="Language">
+            <button type="button" data-langue="en">EN</button>
+            <button type="button" data-langue="fr">FR</button>
+            <button type="button" data-langue="es">ES</button>
+          </span>
+        </p>
 
         <h1 class="nom">David Lance</h1>
-        <p class="metier">Trader. I build my own software.</p>
 
-        <p class="ligne ligne--intro">
+        <p class="metier trad" lang="en">Trader. I build my own software.</p>
+        <p class="metier trad" lang="fr">Trader. Je fabrique mes propres logiciels.</p>
+        <p class="metier trad" lang="es">Trader. Construyo mi propio software.</p>
+
+        <p class="ligne ligne--intro trad" lang="en">
           I'm not an <span class="barre">agency</span>.
         </p>
-
-        <p class="ligne">I trade, and I build.</p>
-
-        <p class="note">
-          <b>The second one comes out of the first.</b> I'm not writing software
-          for an industry I read about from the outside. I'm in this one every
-          day, and that's where the products come from.
+        <p class="ligne ligne--intro trad" lang="fr">
+          Je ne suis pas une <span class="barre">agence</span>.
+        </p>
+        <p class="ligne ligne--intro trad" lang="es">
+          No soy una <span class="barre">agencia</span>.
         </p>
 
-        <p class="ligne">
+        <p class="ligne trad" lang="en">I trade, and I build.</p>
+        <p class="ligne trad" lang="fr">Je trade, et je construis.</p>
+        <p class="ligne trad" lang="es">Opero, y construyo.</p>
+
+        <p class="note trad" lang="en">
+          <b>You come with a problem, you leave with software that runs.</b> Not
+          a mockup, not a report, not a plan for later: the thing itself, live,
+          in front of your users.
+        </p>
+        <p class="note trad" lang="fr">
+          <b>Tu arrives avec un problème, tu repars avec un logiciel qui
+          tourne.</b> Pas une maquette, pas un rapport, pas un plan pour plus
+          tard : la chose elle-même, en ligne, devant tes utilisateurs.
+        </p>
+        <p class="note trad" lang="es">
+          <b>Vienes con un problema, te vas con software que funciona.</b> No una
+          maqueta, no un informe, no un plan para más adelante: la cosa misma, en
+          línea, delante de tus usuarios.
+        </p>
+
+        <p class="ligne trad" lang="en">
           One of them is already
           <a class="lien" href="https://budoka.vercel.app" target="_blank" rel="noreferrer">running</a>.
         </p>
+        <p class="ligne trad" lang="fr">
+          L'un d'eux
+          <a class="lien" href="https://budoka.vercel.app" target="_blank" rel="noreferrer">tourne</a>
+          déjà.
+        </p>
+        <p class="ligne trad" lang="es">
+          Uno de ellos ya está
+          <a class="lien" href="https://budoka.vercel.app" target="_blank" rel="noreferrer">funcionando</a>.
+        </p>
 
-        <p class="note">
+        <p class="note trad" lang="en">
           <b>Budoka.</b> A Discord agent that answers a trading coach's students
           in his own method, taken from his own videos. It escalates to him when
           a question needs a human, and it stays quiet rather than guess. Go
           look, it's live.
         </p>
-
-        <p class="ligne">I take on one outside project at a time.</p>
-
-        <p class="note">
-          <b>Rarely, and on purpose.</b> I'd rather ship one thing properly than
-          four against someone else's deadline. When I take one, you deal with me
-          from the first sentence to production, and the day it breaks in front
-          of your users it's still me.
+        <p class="note trad" lang="fr">
+          <b>Budoka.</b> Un agent Discord qui répond aux élèves d'un coach en
+          trading dans sa méthode à lui, tirée de ses propres vidéos. Il lui
+          repasse la main quand une question demande un humain, et il se tait
+          plutôt que de deviner. Va voir, c'est en ligne.
+        </p>
+        <p class="note trad" lang="es">
+          <b>Budoka.</b> Un agente de Discord que responde a los alumnos de un
+          coach de trading con su propio método, sacado de sus propios vídeos.
+          Le devuelve la pregunta cuando hace falta un humano, y se calla antes
+          que adivinar. Míralo, está funcionando.
         </p>
 
-        <p class="ligne">
+        <p class="ligne trad" lang="en">I take on one outside project at a time.</p>
+        <p class="ligne trad" lang="fr">Je prends un projet extérieur à la fois.</p>
+        <p class="ligne trad" lang="es">Acepto un proyecto externo a la vez.</p>
+
+        <p class="note trad" lang="en">
+          <b>Rarely, and on purpose.</b> Your project isn't queued behind three
+          others, and it doesn't change hands along the way. Whoever writes the
+          first line is whoever answers the day it breaks.
+        </p>
+        <p class="note trad" lang="fr">
+          <b>Rarement, et c'est voulu.</b> Ton projet n'attend pas derrière trois
+          autres, et il ne change pas de mains en route. Celui qui écrit la
+          première ligne est celui qui répond le jour où ça casse.
+        </p>
+        <p class="note trad" lang="es">
+          <b>Pocas veces, y a propósito.</b> Tu proyecto no espera detrás de otros
+          tres, y no cambia de manos por el camino. Quien escribe la primera
+          línea es quien responde el día que se rompe.
+        </p>
+
+        <p class="ligne trad" lang="en">
           <span class="italique">AI, web3, or a plain web app?</span> The stack
           follows the problem.
         </p>
+        <p class="ligne trad" lang="fr">
+          <span class="italique">IA, web3, ou une simple appli web ?</span> La
+          technique suit le problème.
+        </p>
+        <p class="ligne trad" lang="es">
+          <span class="italique">¿IA, web3, o una simple app web?</span> La
+          técnica sigue al problema.
+        </p>
 
-        <p class="note">
+        <p class="note trad" lang="en">
           <b>I don't sell a technology.</b> Most projects need less machinery
           than they think, and the useful work is deciding what to leave out.
         </p>
+        <p class="note trad" lang="fr">
+          <b>Je ne vends pas une technologie.</b> La plupart des projets ont
+          besoin de moins de machinerie qu'ils ne croient, et le vrai travail
+          consiste à décider ce qu'on laisse dehors.
+        </p>
+        <p class="note trad" lang="es">
+          <b>No vendo una tecnología.</b> La mayoría de los proyectos necesitan
+          menos maquinaria de la que creen, y el trabajo útil es decidir qué se
+          deja fuera.
+        </p>
 
-        <p class="ligne">I know what a product has to refuse.</p>
+        <p class="ligne trad" lang="en">I know what a product has to refuse.</p>
+        <p class="ligne trad" lang="fr">Je sais ce qu'un produit doit refuser.</p>
+        <p class="ligne trad" lang="es">Sé lo que un producto tiene que rechazar.</p>
 
-        <p class="note">
-          <b>Software that never says no is a liability.</b> The agent above
-          never promises a return, never speaks over an open position, and hands
-          anything outside its material back to the human. That boundary wasn't
-          a guess.
+        <p class="note trad" lang="en">
+          <b>Software that never says no ends up being your problem.</b> Budoka
+          promises no returns, stays quiet while a student has money in the
+          market, and never answers from outside the coach's material. Deciding
+          what a product turns down is half the work, and it's the half you get
+          delivered least often.
+        </p>
+        <p class="note trad" lang="fr">
+          <b>Un logiciel qui ne dit jamais non finit par être ton problème.</b>
+          Budoka ne promet aucun rendement, se tait quand un élève a de l'argent
+          sur le marché, et ne répond jamais en dehors de la matière du coach.
+          Décider ce qu'un produit refuse, c'est la moitié du travail, et c'est
+          celle qu'on te livre le moins souvent.
+        </p>
+        <p class="note trad" lang="es">
+          <b>Un software que nunca dice no acaba siendo tu problema.</b> Budoka no
+          promete ninguna rentabilidad, se calla cuando un alumno tiene dinero en
+          el mercado, y nunca responde fuera del material del coach. Decidir lo
+          que un producto rechaza es la mitad del trabajo, y es la mitad que
+          menos veces te entregan.
         </p>
 
         <section class="joindre">
-          <p class="accroche">Find me</p>
+          <p class="accroche">
+            <span class="trad" lang="en">Find me</span>
+            <span class="trad" lang="fr">Où me trouver</span>
+            <span class="trad" lang="es">Dónde encontrarme</span>
+          </p>
 
-          <div class="reseaux">
-            <a
-              class="carte"
-              href="https://instagram.com/smcdavid_fx"
-              target="_blank"
-              rel="noreferrer"
-            >
-              <svg viewBox="0 0 24 24" aria-hidden="true">
-                <path
-                  d="M12 2.16c3.2 0 3.58.01 4.85.07 1.17.05 1.8.25 2.23.41.56.22.96.48 1.38.9.42.42.68.82.9 1.38.16.42.36 1.06.41 2.23.06 1.27.07 1.65.07 4.85s-.01 3.58-.07 4.85c-.05 1.17-.25 1.8-.41 2.23-.22.56-.48.96-.9 1.38-.42.42-.82.68-1.38.9-.42.16-1.06.36-2.23.41-1.27.06-1.65.07-4.85.07s-3.58-.01-4.85-.07c-1.17-.05-1.8-.25-2.23-.41-.56-.22-.96-.48-1.38-.9-.42-.42-.68-.82-.9-1.38-.16-.42-.36-1.06-.41-2.23-.06-1.27-.07-1.65-.07-4.85s.01-3.58.07-4.85c.05-1.17.25-1.8.41-2.23.22-.56.48-.96.9-1.38.42-.42.82-.68 1.38-.9.42-.16 1.06-.36 2.23-.41 1.27-.06 1.65-.07 4.85-.07M12 0C8.74 0 8.33.01 7.05.07 5.78.13 4.9.33 4.14.63c-.79.3-1.46.72-2.12 1.39C1.35 2.68.93 3.35.63 4.14.33 4.9.13 5.78.07 7.05.01 8.33 0 8.74 0 12s.01 3.67.07 4.95c.06 1.27.26 2.15.56 2.91.3.79.72 1.46 1.39 2.12.66.67 1.33 1.09 2.12 1.39.76.3 1.64.5 2.91.56C8.33 23.99 8.74 24 12 24s3.67-.01 4.95-.07c1.27-.06 2.15-.26 2.91-.56.79-.3 1.46-.72 2.12-1.39.67-.66 1.09-1.33 1.39-2.12.3-.76.5-1.64.56-2.91.06-1.28.07-1.69.07-4.95s-.01-3.67-.07-4.95c-.06-1.27-.26-2.15-.56-2.91-.3-.79-.72-1.46-1.39-2.12C21.32 1.35 20.65.93 19.86.63c-.76-.3-1.64-.5-2.91-.56C15.67.01 15.26 0 12 0zm0 5.84a6.16 6.16 0 100 12.32 6.16 6.16 0 000-12.32zm0 10.16a4 4 0 110-8 4 4 0 010 8zm7.85-10.4a1.44 1.44 0 11-2.88 0 1.44 1.44 0 012.88 0z"
-                />
-              </svg>
-              <span>
-                <span class="carte-nom">Instagram</span>
-                <span class="carte-note">Charts, mostly</span>
-              </span>
-            </a>
+          <!--
+            ⚠️ La carte est AVANT la liste dans le fichier, et c'est voulu : elle
+            est masquée aux lecteurs d'écran (`aria-hidden`), chaque lien la
+            désigne par `aria-describedby`, et l'adresse mail reste donc annoncée
+            avec le lien au lieu de flotter seule dans la page.
+          -->
+          <div class="social">
+            <div class="social-carte" aria-hidden="true">
+              <article class="social-apercu" id="apercu-instagram">
+                <p class="social-apercu-tete">
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path
+                      d="M12 2.16c3.2 0 3.58.01 4.85.07 1.17.05 1.8.25 2.23.41.56.22.96.48 1.38.9.42.42.68.82.9 1.38.16.42.36 1.06.41 2.23.06 1.27.07 1.65.07 4.85s-.01 3.58-.07 4.85c-.05 1.17-.25 1.8-.41 2.23-.22.56-.48.96-.9 1.38-.42.42-.82.68-1.38.9-.42.16-1.06.36-2.23.41-1.27.06-1.65.07-4.85.07s-3.58-.01-4.85-.07c-1.17-.05-1.8-.25-2.23-.41-.56-.22-.96-.48-1.38-.9-.42-.42-.68-.82-.9-1.38-.16-.42-.36-1.06-.41-2.23-.06-1.27-.07-1.65-.07-4.85s.01-3.58.07-4.85c.05-1.17.25-1.8.41-2.23.22-.56.48-.96.9-1.38.42-.42.82-.68 1.38-.9.42-.16 1.06-.36 2.23-.41 1.27-.06 1.65-.07 4.85-.07M12 0C8.74 0 8.33.01 7.05.07 5.78.13 4.9.33 4.14.63c-.79.3-1.46.72-2.12 1.39C1.35 2.68.93 3.35.63 4.14.33 4.9.13 5.78.07 7.05.01 8.33 0 8.74 0 12s.01 3.67.07 4.95c.06 1.27.26 2.15.56 2.91.3.79.72 1.46 1.39 2.12.66.67 1.33 1.09 2.12 1.39.76.3 1.64.5 2.91.56C8.33 23.99 8.74 24 12 24s3.67-.01 4.95-.07c1.27-.06 2.15-.26 2.91-.56.79-.3 1.46-.72 2.12-1.39.67-.66 1.09-1.33 1.39-2.12.3-.76.5-1.64.56-2.91.06-1.28.07-1.69.07-4.95s-.01-3.67-.07-4.95c-.06-1.27-.26-2.15-.56-2.91-.3-.79-.72-1.46-1.39-2.12C21.32 1.35 20.65.93 19.86.63c-.76-.3-1.64-.5-2.91-.56C15.67.01 15.26 0 12 0zm0 5.84a6.16 6.16 0 100 12.32 6.16 6.16 0 000-12.32zm0 10.16a4 4 0 110-8 4 4 0 010 8zm7.85-10.4a1.44 1.44 0 11-2.88 0 1.44 1.44 0 012.88 0z"
+                    />
+                  </svg>
+                  Instagram
+                </p>
+                <p class="social-apercu-nom">@smcdavid_fx</p>
+                <p class="social-apercu-note trad" lang="en">
+                  Charts, mostly. What I'm watching, and why.
+                </p>
+                <p class="social-apercu-note trad" lang="fr">
+                  Des graphiques, surtout. Ce que je regarde, et pourquoi.
+                </p>
+                <p class="social-apercu-note trad" lang="es">
+                  Gráficos, sobre todo. Lo que miro, y por qué.
+                </p>
+                <span class="social-apercu-suite trad" lang="en">Open the profile &#8599;</span>
+                <span class="social-apercu-suite trad" lang="fr">Ouvrir le profil &#8599;</span>
+                <span class="social-apercu-suite trad" lang="es">Abrir el perfil &#8599;</span>
+              </article>
+
+              <article class="social-apercu" id="apercu-mail">
+                <p class="social-apercu-tete">
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path
+                      fill-rule="evenodd"
+                      d="M4 5h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Zm.9 2 7.1 4.4L19.1 7H4.9Z"
+                    />
+                  </svg>
+                  Email
+                </p>
+                <p class="social-apercu-nom">7smcdavid@gmail.com</p>
+                <p class="social-apercu-note trad" lang="en">
+                  Straight to me. The subject line comes pre-filled with
+                  &laquo;&nbsp;Building something&nbsp;&raquo;.
+                </p>
+                <p class="social-apercu-note trad" lang="fr">
+                  Directement à moi. L'objet est déjà rempli :
+                  &laquo;&nbsp;Building something&nbsp;&raquo;.
+                </p>
+                <p class="social-apercu-note trad" lang="es">
+                  Directo a mí. El asunto ya viene puesto:
+                  &laquo;&nbsp;Building something&nbsp;&raquo;.
+                </p>
+                <span class="social-apercu-suite trad" lang="en">Write to me &#8599;</span>
+                <span class="social-apercu-suite trad" lang="fr">Écris-moi &#8599;</span>
+                <span class="social-apercu-suite trad" lang="es">Escríbeme &#8599;</span>
+              </article>
+            </div>
+
+            <div class="social-liste">
+              <a
+                class="social-pion"
+                href="https://instagram.com/smcdavid_fx"
+                target="_blank"
+                rel="noreferrer"
+                aria-describedby="apercu-instagram"
+              >
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path
+                    d="M12 2.16c3.2 0 3.58.01 4.85.07 1.17.05 1.8.25 2.23.41.56.22.96.48 1.38.9.42.42.68.82.9 1.38.16.42.36 1.06.41 2.23.06 1.27.07 1.65.07 4.85s-.01 3.58-.07 4.85c-.05 1.17-.25 1.8-.41 2.23-.22.56-.48.96-.9 1.38-.42.42-.82.68-1.38.9-.42.16-1.06.36-2.23.41-1.27.06-1.65.07-4.85.07s-3.58-.01-4.85-.07c-1.17-.05-1.8-.25-2.23-.41-.56-.22-.96-.48-1.38-.9-.42-.42-.68-.82-.9-1.38-.16-.42-.36-1.06-.41-2.23-.06-1.27-.07-1.65-.07-4.85s.01-3.58.07-4.85c.05-1.17.25-1.8.41-2.23.22-.56.48-.96.9-1.38.42-.42.82-.68 1.38-.9.42-.16 1.06-.36 2.23-.41 1.27-.06 1.65-.07 4.85-.07M12 0C8.74 0 8.33.01 7.05.07 5.78.13 4.9.33 4.14.63c-.79.3-1.46.72-2.12 1.39C1.35 2.68.93 3.35.63 4.14.33 4.9.13 5.78.07 7.05.01 8.33 0 8.74 0 12s.01 3.67.07 4.95c.06 1.27.26 2.15.56 2.91.3.79.72 1.46 1.39 2.12.66.67 1.33 1.09 2.12 1.39.76.3 1.64.5 2.91.56C8.33 23.99 8.74 24 12 24s3.67-.01 4.95-.07c1.27-.06 2.15-.26 2.91-.56.79-.3 1.46-.72 2.12-1.39.67-.66 1.09-1.33 1.39-2.12.3-.76.5-1.64.56-2.91.06-1.28.07-1.69.07-4.95s-.01-3.67-.07-4.95c-.06-1.27-.26-2.15-.56-2.91-.3-.79-.72-1.46-1.39-2.12C21.32 1.35 20.65.93 19.86.63c-.76-.3-1.64-.5-2.91-.56C15.67.01 15.26 0 12 0zm0 5.84a6.16 6.16 0 100 12.32 6.16 6.16 0 000-12.32zm0 10.16a4 4 0 110-8 4 4 0 010 8zm7.85-10.4a1.44 1.44 0 11-2.88 0 1.44 1.44 0 012.88 0z"
+                  />
+                </svg>
+                Instagram
+              </a>
+
+              <a
+                class="social-pion social-pion--accent"
+                href="mailto:7smcdavid@gmail.com?subject=Building%20something"
+                aria-describedby="apercu-mail"
+              >
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path
+                    fill-rule="evenodd"
+                    d="M4 5h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Zm.9 2 7.1 4.4L19.1 7H4.9Z"
+                  />
+                </svg>
+                <span class="trad" lang="en">Write to me</span>
+                <span class="trad" lang="fr">Écris-moi</span>
+                <span class="trad" lang="es">Escríbeme</span>
+              </a>
+            </div>
           </div>
-
-          <a class="ecrire" href="mailto:7smcdavid@gmail.com?subject=Building%20something">
-            <span class="ecrire-titre">Write to me</span>
-            <span class="ecrire-adresse">7smcdavid@gmail.com</span>
-          </a>
         </section>
 
         <p class="lieu">
@@ -613,5 +1013,283 @@
         </p>
       </div>
     </main>
+
+    <!-- ---------------------------------------------------------------------
+       * Les quatre jetons.
+       *
+       * Ce sont les tracés officiels des marques, recopiés tels quels depuis
+       * leurs logos. ⚠️ Ces `d` ne se retouchent pas à la main : on remplace un
+       * SVG en entier, ou on n'y touche pas.
+       *
+       * ⚠️ Les couleurs, elles, sont réglées CONTRE le fond noir et ne sont pas
+       * toutes celles de la charte : le bleu Cardano officiel (#0033AD) est
+       * presque invisible sur un fond sombre, il est donc éclairci.
+       * ------------------------------------------------------------------- -->
+    <template id="jetons">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="#F7931A" d="M23.638 14.904c-1.602 6.43-8.113 10.34-14.542 8.736C2.67 22.05-1.244 15.525.362 9.105 1.962 2.67 8.475-1.243 14.9.358c6.43 1.605 10.342 8.115 8.738 14.548v-.002zm-6.35-4.613c.24-1.59-.974-2.45-2.64-3.03l.54-2.153-1.315-.33-.525 2.107c-.345-.087-.705-.167-1.064-.25l.526-2.127-1.32-.33-.54 2.165c-.285-.067-.565-.132-.84-.2l-1.815-.45-.35 1.407s.975.225.955.236c.535.136.63.486.615.766l-1.477 5.92c-.075.166-.24.406-.614.314.015.02-.96-.24-.96-.24l-.66 1.51 1.71.426.93.242-.54 2.19 1.32.327.54-2.17c.36.1.705.19 1.05.273l-.51 2.154 1.32.33.545-2.19c2.24.427 3.93.257 4.64-1.774.57-1.637-.03-2.58-1.217-3.196.854-.193 1.5-.76 1.68-1.93h.01zm-3.01 4.22c-.404 1.64-3.157.75-4.05.53l.72-2.9c.896.23 3.757.67 3.33 2.37zm.41-4.24c-.37 1.49-2.662.735-3.405.55l.654-2.64c.744.18 3.137.524 2.75 2.084v.006z"/></svg>
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="#7B8CEB" d="M11.944 17.97L4.58 13.62 11.943 24l7.37-10.38-7.372 4.35h.003zM12.056 0L4.69 12.223l7.365 4.354 7.365-4.35L12.056 0z"/></svg>
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="url(#degrade-solana)" d="m23.8764 18.0313-3.962 4.1393a.9201.9201 0 0 1-.306.2106.9407.9407 0 0 1-.367.0742H.4599a.4689.4689 0 0 1-.2522-.0733.4513.4513 0 0 1-.1696-.1962.4375.4375 0 0 1-.0314-.2545.4438.4438 0 0 1 .117-.2298l3.9649-4.1393a.92.92 0 0 1 .3052-.2102.9407.9407 0 0 1 .3658-.0746H23.54a.4692.4692 0 0 1 .2523.0734.4531.4531 0 0 1 .1697.196.438.438 0 0 1 .0313.2547.4442.4442 0 0 1-.1169.2297zm-3.962-8.3355a.9202.9202 0 0 0-.306-.2106.941.941 0 0 0-.367-.0742H.4599a.4687.4687 0 0 0-.2522.0734.4513.4513 0 0 0-.1696.1961.4376.4376 0 0 0-.0314.2546.444.444 0 0 0 .117.2297l3.9649 4.1394a.9204.9204 0 0 0 .3052.2102c.1154.049.24.0744.3658.0746H23.54a.469.469 0 0 0 .2523-.0734.453.453 0 0 0 .1697-.1961.4382.4382 0 0 0 .0313-.2546.4444.4444 0 0 0-.1169-.2297zM.46 6.7225h18.7815a.9411.9411 0 0 0 .367-.0742.9202.9202 0 0 0 .306-.2106l3.962-4.1394a.4442.4442 0 0 0 .117-.2297.4378.4378 0 0 0-.0314-.2546.453.453 0 0 0-.1697-.196.469.469 0 0 0-.2523-.0734H4.7596a.941.941 0 0 0-.3658.0745.9203.9203 0 0 0-.3052.2102L.1246 5.9687a.4438.4438 0 0 0-.1169.2295.4375.4375 0 0 0 .0312.2544.4512.4512 0 0 0 .1692.196.4689.4689 0 0 0 .2518.0739z"/></svg>
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="#4D8BFF" d="M6.5765 11.92c-.0488.8906.6316 1.653 1.5219 1.7056h.0934c.8928-.0006 1.6161-.725 1.6155-1.6178-.0006-.8928-.725-1.6161-1.6178-1.6155-.8578.0006-1.5658.6711-1.613 1.5277Zm-6.025-.416c-.288-.0161-.5345.2042-.5507.4922-.0161.288.2042.5345.4922.5507.2878.0161.5343-.204.5506-.4918.0167-.2876-.2029-.5343-.4905-.5509H.5514Zm5.9226-8.9645c.257-.1309.3593-.4453.2284-.7024-.1309-.257-.4453-.3593-.7024-.2284-.2558.1302-.3585.4424-.2301.6991.13.2582.4448.3622.703.2322.0003-.0002.0007-.0003.001-.0005Zm1.6397 2.8589c.398-.2006.558-.6859.3573-1.0839-.2006-.398-.6859-.558-1.0839-.3573-.3978.2006-.5579.6856-.3575 1.0835.2007.398.686.5581 1.0842.3578ZM2.597 7.3645c.3072.2013.7194.1154.9206-.1918.2013-.3072.1154-.7194-.1918-.9206-.3072-.2013-.7194-.1154-.9206.1918 0 .0001-.0001.0002-.0002.0003-.201.3072-.1151.7191.192.9203Zm.9824 3.8515c-.4453-.0254-.827.3149-.8524.7603s.3149.827.7603.8524c.4453.0254.827-.3149.8524-.7603v-.0006c.0251-.4451-.3152-.8264-.7603-.8518Zm-.8915 5.4221c-.328.1652-.46.565-.2948.893.1652.328.565.46.893.2948.328-.1652.46-.565.2948-.893l-.0002-.0004c-.1645-.3276-.5633-.4598-.8909-.2954-.0006.0003-.0013.0006-.0019.001Zm3.136-7.0931c.4386.2876 1.0274.1653 1.315-.2734.2876-.4386.1653-1.0274-.2734-1.315-.4386-.2876-1.0273-.1653-1.3149.2732-.2878.4381-.166 1.0266.2721 1.3144.0004.0003.0008.0005.0012.0008Zm9.9501-4.2106c.3729.2447.8737.1408 1.1184-.2321.2447-.3729.1408-.8737-.2321-1.1184-.3729-.2447-.8737-.1408-1.1184.2321 0 .0001-.0001.0002-.0002.0003-.2447.3726-.141.8729.2316 1.1176.0003.0002.0005.0003.0008.0005Zm1.6563-2.8499c.2413.1579.565.0904.723-.151s.0904-.565-.151-.723c-.241-.1577-.5642-.0906-.7224.1501-.1584.241-.0915.5648.1495.7233l.0009.0006Zm-1.5296 7.8938c-.8911-.0507-1.6546.6305-1.7053 1.5216-.0507.8911.6305 1.6546 1.5216 1.7053h.0928c.8925 0 1.616-.7235 1.616-1.616 0-.8572-.6693-1.5652-1.5251-1.6134v.0026ZM8.645 9.433c.2737.5459.8331.8896 1.4438.887.8925-.0002 1.6159-.7238 1.6157-1.6163 0-.2526-.0593-.5018-.1731-.7273-.4017-.7971-1.3735-1.1176-2.1706-.7158-.7971.4017-1.1176 1.3735-.7158 2.1706v.0019Zm12.6669-2.0704c.3273-.1666.4575-.567.2909-.8943-.1666-.3273-.567-.4575-.8943-.2909-.3259.1659-.4567.5639-.2927.8908.1652.3284.5653.4607.8937.2956.0008-.0004.0015-.0008.0023-.0012Zm-4.096.5146c-.4683.2362-.6565.8074-.4203 1.2757.2362.4683.8074.6565 1.2757.4203.468-.2361.6563-.8066.4207-1.2749-.2364-.4683-.8074-.6568-1.2762-.4211Zm-5.2768-5.6365c.3667.0205.6806-.2601.7011-.6267s-.2601-.6806-.6267-.7011c-.3655-.0205-.6789.2584-.7009.6238-.0225.3662.2562.6813.6224.7038.0014 0 .0028.0002.0042.0002Zm-.0077 4.1837c.5237.0288.9717-.3724 1.0006-.8961.0288-.5237-.3723-.9717-.8961-1.0006-.5231-.0288-.9707.3714-1.0005.8944-.0298.5237.3706.9724.8943 1.0021h.0017Zm-5.1475 9.6992c.4685-.2359.657-.807.421-1.2755-.2359-.4685-.807-.657-1.2755-.421-.4684.2359-.6569.8069-.4211 1.2754.2362.4682.807.6567 1.2755.4211Zm5.76-8.313c-.4881.7459-.2792 1.7463.4667 2.2344s1.7463.2792 2.2344-.4667.2792-1.7463-.4667-2.2344c-.262-.1715-.5683-.263-.8815-.2635-.5452-.0001-1.0538.2744-1.353.7302Zm2.8109 6.7571c-.4015-.7975-1.3735-1.1185-2.171-.7169-.7975.4015-1.1185 1.3735-.7169 2.171.4015.7975 1.3735 1.1185 2.171.7169.0005-.0002.0009-.0005.0014-.0007.7947-.3952 1.1186-1.3598.7235-2.1545-.0026-.0053-.0053-.0105-.0079-.0158Zm2.8211-.112c-.4386-.2876-1.0274-.1653-1.315.2734-.2876.4386-.1653 1.0274.2734 1.315.4386.2876 1.0273.1653 1.3149-.2732.2877-.4386.1654-1.0274-.2731-1.3151h-.0002Zm3.0963-2.4282c.0254-.4453-.3149-.827-.7603-.8524-.4453-.0254-.827.3149-.8524.7603-.0254.4453.3149.827.7603.8524h.0006c.4451.0251.8264-.3152.8518-.7603Zm2.2349-.5741c-.288-.0161-.5345.2042-.5507.4922s.2042.5345.4922.5507c.2878.0161.5343-.204.5506-.4918.016-.288-.2042-.5345-.4922-.551Zm-2.1043 5.1821c-.3073-.2011-.7194-.115-.9205.1923-.2011.3073-.115.7194.1923.9205.3071.201.719.1151.9202-.1918.2013-.3071.1156-.7193-.1916-.9207l-.0004-.0003ZM6.5695 21.5161c-.2411-.1584-.5649-.0913-.7232.1497-.1584.2411-.0913.5649.1497.7232.2411.1584.5649.0913.7232-.1497.158-.2411.091-.5646-.1498-.7232Zm10.9555-.055c-.257.1309-.3593.4453-.2284.7024.1309.257.4453.3593.7023.2284.2558-.1302.3585-.4424.2301-.6991-.1291-.2579-.4428-.3624-.7007-.2333-.0011.0005-.0022.0011-.0033.0016Zm-6.0691-5.2717c.4892-.7465.2806-1.7482-.4659-2.2374-.7465-.4892-1.7482-.2806-2.2374.4659s-.2806 1.7482.4659 2.2374c.2628.1722.5702.2641.8844.2644.5458.0022 1.0553-.2728 1.353-.7302Zm-3.2301 2.4768c-.3729-.2447-.8737-.1408-1.1184.2321-.2447.3729-.1408.8737.2321 1.1184s.8737.1408 1.1184-.2321c0-.0001.0001-.0002.0002-.0003.2445-.3729.1405-.8734-.2323-1.1181Zm3.7664 3.0931c-.3667-.0209-.6808.2594-.7017.6261s.2594.6808.6261.7017c.3658.0208.6795-.2581.7016-.6238.0222-.3666-.2571-.6817-.6236-.7039-.0008 0-.0015 0-.0023-.0001Zm.007-4.1837c-.5237-.0288-.9717.3724-1.0005.8961-.0288.5237.3724.9717.8961 1.0005.5228.0288.9703-.371 1.0004-.8938.0298-.524-.3709-.973-.8949-1.0028h-.0011Zm3.8861 1.0259c-.3976.2022-.556.6884-.3539 1.086.2022.3976.6884.556 1.086.3539.3961-.2014.5551-.685.3558-1.0821-.2-.3987-.6854-.5598-1.0841-.3597-.0013.0007-.0026.0013-.0039.002Z"/></svg>
+    </template>
+
+    <!-- Le dégradé de Solana vit ICI, une seule fois, et pas dans le <template>.
+         Il est recopié à chaque jeton posé, et douze copies du même `id` dans la
+         page, c'est douze fois le même identifiant : un `url(#…)` se résout sur
+         tout le document, une seule définition suffit donc à les servir tous. -->
+    <svg width="0" height="0" aria-hidden="true" style="position: absolute">
+      <defs>
+        <linearGradient id="degrade-solana" x1="0" y1="1" x2="1" y2="0">
+          <stop offset="0%" stop-color="#9945FF" />
+          <stop offset="100%" stop-color="#14F195" />
+        </linearGradient>
+      </defs>
+    </svg>
+
+    <script>
+      /* =====================================================================
+       * La traînée de jetons.
+       *
+       * Le principe tient en une phrase : on ne pose pas un jeton à chaque
+       * mouvement de souris, on en pose un tous les PAS pixels PARCOURUS. Un
+       * `pointermove` tire jusqu'à cent événements par seconde ; en poser un à
+       * chaque fois donne un tas de logos empilés sur place, et la distance est
+       * ce qui transforme le tas en trajectoire.
+       *
+       * Les jetons ne sont jamais créés ni détruits en cours de route : douze
+       * sont posés au chargement et on tourne dessus. Créer un nœud par
+       * mouvement, c'est le ramasse-miettes qui saccade l'animation.
+       * ===================================================================== */
+      (() => {
+        // ⚠️ Sans souris, pas de curseur, donc pas de traînée : sur téléphone
+        // le script s'arrête ici et ne construit rien du tout.
+        if (!matchMedia("(hover: hover) and (pointer: fine)").matches) return;
+
+        const doux = matchMedia("(prefers-reduced-motion: reduce)");
+        const calque = document.querySelector(".trainee");
+        const modeles = [...document.getElementById("jetons").content.children];
+
+        // ⚠️ Multiple de 4 : la ronde des jetons retombe sur ses pieds et
+        // l'ordre BTC, ETH, SOL, ADA ne se décale pas d'un tour à l'autre.
+        const RONDE = 12;
+        const PAS = 96; // pixels parcourus entre deux jetons
+        const VIE = 900; // millisecondes du fondu complet
+
+        const jetons = Array.from({ length: RONDE }, (_, i) => {
+          const jeton = modeles[i % modeles.length].cloneNode(true);
+          calque.append(jeton);
+          return jeton;
+        });
+
+        // Mesuré une seule fois : le lire à chaque jeton posé force un calcul de
+        // mise en page au milieu de l'animation.
+        const demi = jetons[0].getBoundingClientRect().width / 2;
+
+        let x = null;
+        let y = null;
+        let tour = 0;
+
+        addEventListener(
+          "pointermove",
+          (e) => {
+            if (e.pointerType === "touch") return;
+            // Relu à chaque fois, et pas au chargement : le réglage « moins de
+            // mouvement » se change en cours de route, sans recharger la page.
+            if (doux.matches) return;
+
+            if (x === null) {
+              x = e.clientX;
+              y = e.clientY;
+              return;
+            }
+
+            const dx = e.clientX - x;
+            const dy = e.clientY - y;
+            if (Math.hypot(dx, dy) < PAS) return;
+
+            x = e.clientX;
+            y = e.clientY;
+            poser(jetons[tour++ % jetons.length], x, y, dx >= 0 ? 12 : -12);
+          },
+          { passive: true },
+        );
+
+        function poser(jeton, x, y, inclinaison) {
+          // Le jeton peut être encore en train de s'effacer d'un tour
+          // précédent : sans cette coupure, les deux animations se superposent
+          // et il clignote.
+          jeton.getAnimations().forEach((a) => a.cancel());
+
+          const place = (dy, echelle, rotation) =>
+            `translate3d(${x - demi}px, ${y - demi + dy}px, 0)` +
+            ` scale(${echelle}) rotate(${rotation}deg)`;
+
+          jeton.animate(
+            [
+              { opacity: 0, transform: place(0, 0.45, inclinaison - 16) },
+              { opacity: 1, transform: place(0, 1, inclinaison), offset: 0.18 },
+              { opacity: 0, transform: place(26, 0.72, inclinaison + 8) },
+            ],
+            {
+              duration: VIE,
+              easing: "cubic-bezier(0.22, 1, 0.36, 1)",
+              // `forwards` : sans lui le jeton revient à son état de départ à la
+              // fin, c'est-à-dire réapparaît en haut à gauche de l'écran.
+              fill: "forwards",
+            },
+          );
+        }
+      })();
+
+      /* =====================================================================
+       * Les cartes de contact.
+       *
+       * Une seule carte pour tous les pions. Elle voyage, elle change de
+       * hauteur, et son contenu se croise dans le SENS du déplacement : venir
+       * de la gauche et venir de la droite ne donnent pas la même transition,
+       * c'est ce qui fait qu'on sent où l'on va au lieu de voir un fondu.
+       *
+       * ⚠️ La coupure « moins de mouvement » n'est PAS ici : tout se joue en
+       * transitions CSS, que le `@media (prefers-reduced-motion)` de la feuille
+       * de style désactive déjà. La carte s'ouvre alors d'un coup, sans voyage
+       * ni flou — l'information reste, le mouvement part.
+       * ===================================================================== */
+      (() => {
+        const bloc = document.querySelector(".social");
+        const carte = bloc.querySelector(".social-carte");
+        const apercus = [...bloc.querySelectorAll(".social-apercu")];
+        const pions = [...bloc.querySelectorAll(".social-pion")];
+        const survol = matchMedia("(hover: hover) and (pointer: fine)");
+
+        const GLISSE = 10; // pixels de travel du contenu qui se croise
+        let ouvert = -1;
+
+        function placer() {
+          const pion = pions[ouvert];
+          const largeur = carte.offsetWidth;
+          const centre = pion.offsetLeft + pion.offsetWidth / 2;
+          // ⚠️ Bornée au bloc : centrée telle quelle sur le dernier pion, la
+          // carte sort de la colonne et se fait couper par le bord de l'écran.
+          const bord = Math.max(bloc.clientWidth - largeur, 0);
+          const x = Math.min(Math.max(centre - largeur / 2, 0), bord);
+
+          carte.style.transform = `translateX(${x}px)`;
+          // `height: auto` ne s'anime pas : la hauteur du contenu qui arrive est
+          // mesurée, puis écrite en pixels.
+          carte.style.height = `${apercus[ouvert].offsetHeight}px`;
+        }
+
+        function ouvrir(i) {
+          if (i === ouvert) return;
+          const sens = ouvert === -1 || i > ouvert ? 1 : -1;
+
+          if (ouvert !== -1) {
+            // Le sortant part du côté opposé à celui d'où arrive l'entrant :
+            // les deux glissent dans le même sens, comme un ruban qui défile.
+            apercus[ouvert].style.setProperty("--decalage", `${-GLISSE * sens}px`);
+            apercus[ouvert].removeAttribute("data-actif");
+            pions[ouvert].removeAttribute("data-actif");
+          }
+
+          const entrant = apercus[i];
+          // ⚠️ Le point de départ se pose transition COUPÉE, sinon l'entrant
+          // commence par glisser depuis sa position d'il y a deux tours et le
+          // sens du mouvement se lit à l'envers une fois sur deux.
+          entrant.style.transition = "none";
+          entrant.style.setProperty("--decalage", `${GLISSE * sens}px`);
+          void entrant.offsetWidth; // force le recalcul avant de rendre la main
+          entrant.style.transition = "";
+
+          ouvert = i;
+          entrant.setAttribute("data-actif", "");
+          pions[i].setAttribute("data-actif", "");
+          carte.setAttribute("data-ouverte", "");
+          placer();
+        }
+
+        function fermer() {
+          if (ouvert === -1) return;
+          apercus[ouvert].removeAttribute("data-actif");
+          pions[ouvert].removeAttribute("data-actif");
+          carte.removeAttribute("data-ouverte");
+          carte.style.height = "0px";
+          ouvert = -1;
+        }
+
+        pions.forEach((pion, i) => {
+          pion.addEventListener("pointerenter", (e) => {
+            if (e.pointerType !== "touch") ouvrir(i);
+          });
+          pion.addEventListener("focus", () => ouvrir(i));
+
+          // ⚠️ Sans souris, le PREMIER appui ouvre la carte et le SECOND suit le
+          // lien. Un écran tactile n'a pas de survol : sans ça, la carte
+          // n'apparaîtrait qu'au moment de quitter la page, donc jamais.
+          pion.addEventListener("click", (e) => {
+            if (survol.matches || ouvert === i) return;
+            e.preventDefault();
+            ouvrir(i);
+          });
+        });
+
+        bloc.addEventListener("pointerleave", fermer);
+        bloc.addEventListener("focusout", (e) => {
+          if (!bloc.contains(e.relatedTarget)) fermer();
+        });
+        addEventListener("keydown", (e) => {
+          if (e.key === "Escape") fermer();
+        });
+        addEventListener("pointerdown", (e) => {
+          if (!bloc.contains(e.target)) fermer();
+        });
+        addEventListener("resize", () => {
+          if (ouvert !== -1) placer();
+        });
+      })();
+
+      /* =====================================================================
+       * Le sélecteur de langue.
+       *
+       * Le gros du travail est déjà fait : la langue a été posée sur la balise
+       * `<html>` par le script du `<head>`, et le CSS a caché les deux autres
+       * versions avant le premier affichage. Il ne reste que les boutons, le
+       * titre de l'onglet, et le souvenir du choix.
+       * ===================================================================== */
+      (() => {
+        const boutons = [...document.querySelectorAll(".langues button")];
+        const groupe = document.querySelector(".langues");
+
+        // ⚠️ Le titre de l'onglet et l'étiquette du groupe de boutons ne sont
+        // pas dans la page : ils ne peuvent pas être cachés par le CSS comme le
+        // reste, ils se réécrivent donc à la main.
+        const TITRES = {
+          en: "Hi — David Lance",
+          fr: "Bonjour — David Lance",
+          es: "Hola — David Lance",
+        };
+        const ETIQUETTES = { en: "Language", fr: "Langue", es: "Idioma" };
+
+        function appliquer(langue) {
+          document.documentElement.lang = langue;
+          document.documentElement.dataset.langue = langue;
+          document.title = TITRES[langue];
+          groupe.setAttribute("aria-label", ETIQUETTES[langue]);
+          boutons.forEach((b) =>
+            b.setAttribute("aria-pressed", String(b.dataset.langue === langue)),
+          );
+
+          try {
+            localStorage.setItem("langue", langue);
+          } catch (e) {}
+        }
+
+        boutons.forEach((b) =>
+          b.addEventListener("click", () => appliquer(b.dataset.langue)),
+        );
+
+        // Au chargement, la langue est déjà posée : cet appel ne sert qu'à
+        // mettre le titre, l'étiquette et le bouton actif d'accord avec elle.
+        appliquer(document.documentElement.dataset.langue);
+      })();
+    </script>
   </body>
 </html>
